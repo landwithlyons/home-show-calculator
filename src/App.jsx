@@ -1,3 +1,4 @@
+import "./app.css";
 import { useEffect, useMemo, useState } from "react";
 
 function clampNumber(n, min = 0) {
@@ -46,9 +47,11 @@ function buildCopySummary(calc, inputs) {
       calc.requiredIncomeA
     )} / yr)`,
     "",
-    `Assumptions: Taxes=${formatMoney(inputs.taxesAnnual)}/yr, HOI=${formatMoney(inputs.hoiAnnual)}/yr, PMI placeholder=0.50%/yr if <20% down`,
+    `Assumptions: Taxes=${formatMoney(inputs.taxesAnnual)}/yr, HOI=${formatMoney(
+      inputs.hoiAnnual
+    )}/yr, PMI placeholder=0.50%/yr if <20% down`,
     "",
-    "DISCLAIMER: This is for illustrative purposes only and is NOT a Loan Estimate or a rate lock. Actual payment, PMI, and eligibility vary by loan program, credit, property, taxes/insurance, and underwriting. Talk to a mortgage professional and request an official Loan Estimate before choosing a loan.",
+    "DISCLAIMER: Illustrative purposes only and NOT a Loan Estimate, rate lock, or approval. Actual payment/PMI/eligibility vary by program, credit, taxes/insurance, HOA, and underwriting. Talk to a mortgage professional and request an official Loan Estimate before choosing a loan.",
   ];
   return lines.join("\n");
 }
@@ -57,9 +60,9 @@ export default function App() {
   // Inputs
   const [purchasePrice, setPurchasePrice] = useState(350000);
   const [downType, setDownType] = useState("%");
-  const [downValue, setDownValue] = useState(5); // % or $
+  const [downValue, setDownValue] = useState(5);
 
-  const [rate, setRate] = useState(6.75);
+  const [rate, setRate] = useState(6.0); // ✅ default 6%
   const [termYears, setTermYears] = useState(30);
   const [hoaMonthly, setHoaMonthly] = useState(0);
 
@@ -69,7 +72,7 @@ export default function App() {
   const [taxesTouched, setTaxesTouched] = useState(false);
   const [hoiTouched, setHoiTouched] = useState(false);
 
-  // Lead
+  // Lead capture
   const [firstName, setFirstName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -82,7 +85,6 @@ export default function App() {
   const suggestedHoi = useMemo(() => purchasePrice * 0.008, [purchasePrice]);
 
   useEffect(() => {
-    // Only auto-apply if user hasn't edited the fields.
     if (!taxesTouched) setTaxesAnnual(suggestedTaxes);
     if (!hoiTouched) setHoiAnnual(suggestedHoi);
   }, [suggestedTaxes, suggestedHoi, taxesTouched, hoiTouched]);
@@ -111,6 +113,7 @@ export default function App() {
     const piti = pi + taxesM + hoiM + pmiM;
     const total = piti + hoaM;
 
+    // “Backwards” housing-only income needed @ 42% max
     const dtiTarget = 0.42;
     const requiredIncomeM = piti / dtiTarget;
     const requiredIncomeA = requiredIncomeM * 12;
@@ -152,10 +155,10 @@ export default function App() {
     try {
       const text = buildCopySummary(calc, { taxesAnnual, hoiAnnual });
       await navigator.clipboard.writeText(text);
-      setCopyStatus("Copied to clipboard.");
+      setCopyStatus("Copied.");
       setTimeout(() => setCopyStatus(""), 2000);
     } catch {
-      setCopyStatus("Copy failed (browser blocked clipboard).");
+      setCopyStatus("Copy failed.");
       setTimeout(() => setCopyStatus(""), 2500);
     }
   }
@@ -180,7 +183,7 @@ export default function App() {
     }
 
     const payload = {
-      event_source: "Home Show",
+      event_source: "Duluth Home Show 2026",
       first_name: firstName.trim(),
       phone: phone.trim(),
       email: email.trim(),
@@ -220,118 +223,99 @@ export default function App() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Submission failed.");
 
-      setStatus({
-        type: "success",
-        msg: "Submitted! Thanks — a mortgage professional will follow up to tighten this estimate.",
-      });
+      setStatus({ type: "success", msg: "Submitted! (Illustrative estimate saved.)" });
     } catch (e) {
       setStatus({ type: "error", msg: e.message || "Something went wrong." });
     }
   }
 
   return (
-    <div style={{ fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial" }}>
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: 20 }}>
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 28 }}>Home Payment Estimator</h1>
-            <p style={{ marginTop: 6, color: "#444" }}>
-              Fast planning estimates for a home show conversation.
-            </p>
-          </div>
-        </header>
-
-        {/* Big disclaimer */}
-        <div
-          style={{
-            marginTop: 10,
-            padding: 14,
-            borderRadius: 12,
-            border: "2px solid #111",
-            background: "#fafafa",
-          }}
-        >
-          <div style={{ fontWeight: 900, marginBottom: 6 }}>
-            IMPORTANT DISCLAIMER (Illustrative Purposes Only)
-          </div>
-          <div style={{ color: "#222", lineHeight: 1.35 }}>
-            This tool provides <b>illustrative estimates only</b> and is <b>NOT</b> a Loan Estimate, a rate lock, or a loan
-            approval. Actual payment, PMI, and eligibility vary by loan program, credit, property details, taxes/insurance,
-            and underwriting. <b>Talk to a mortgage professional</b> and request an <b>official Loan Estimate</b> before choosing a loan.
-          </div>
+    <div className="container">
+      <div className="header">
+        <div>
+          <h1 className="h1">Home Payment Estimator</h1>
+          <p className="sub">Quick planning estimates for a home show conversation.</p>
         </div>
+        <button className="btn" onClick={copySummary}>Copy summary</button>
+      </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 12 }}>
-          {/* Inputs */}
-          <section style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16 }}>
-            <h2 style={{ marginTop: 0, fontSize: 18 }}>Inputs</h2>
+      <div className="disclaimer">
+        <b>IMPORTANT:</b> Illustrative purposes only. This is <b>NOT</b> a Loan Estimate, rate lock, or approval. Actual payment,
+        PMI, and eligibility vary by loan program, credit, taxes/insurance, HOA, and underwriting. Talk to a mortgage professional
+        and request an <b>official Loan Estimate</b> before choosing a loan.
+      </div>
 
-            <label style={{ display: "block", marginBottom: 10 }}>
-              Purchase price
+      <div className="grid">
+        {/* LEFT: INPUTS */}
+        <section className="card">
+          <div className="cardTitle">
+            <h2>Inputs</h2>
+            <div className="pills">
+              <button className="btn" onClick={resetSuggested}>Reset taxes/HOI</button>
+            </div>
+          </div>
+
+          <div className="row">
+            <div>
+              <div className="label">Purchase price</div>
               <input
+                className="input"
                 type="number"
                 min="0"
                 value={purchasePrice}
                 onChange={(e) => setPurchasePrice(Number(e.target.value))}
-                style={{ width: "100%", padding: 10, marginTop: 6, borderRadius: 10, border: "1px solid #ccc" }}
               />
-            </label>
-
-            <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10, alignItems: "end", marginBottom: 10 }}>
-              <label style={{ display: "block" }}>
-                Down type
-                <select
-                  value={downType}
-                  onChange={(e) => setDownType(e.target.value)}
-                  style={{ width: "100%", padding: 10, marginTop: 6, borderRadius: 10, border: "1px solid #ccc" }}
-                >
-                  <option value="%">%</option>
-                  <option value="$">$</option>
-                </select>
-              </label>
-
-              <label style={{ display: "block" }}>
-                Down payment {downType === "%" ? "(%)" : "($)"}
-                <input
-                  type="number"
-                  min="0"
-                  value={downValue}
-                  onChange={(e) => setDownValue(Number(e.target.value))}
-                  style={{ width: "100%", padding: 10, marginTop: 6, borderRadius: 10, border: "1px solid #ccc" }}
-                />
-              </label>
             </div>
+          </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-              <label style={{ display: "block" }}>
-                Interest rate (APR %)
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={rate}
-                  onChange={(e) => setRate(Number(e.target.value))}
-                  style={{ width: "100%", padding: 10, marginTop: 6, borderRadius: 10, border: "1px solid #ccc" }}
-                />
-              </label>
-              <label style={{ display: "block" }}>
-                Term (years)
-                <select
-                  value={termYears}
-                  onChange={(e) => setTermYears(Number(e.target.value))}
-                  style={{ width: "100%", padding: 10, marginTop: 6, borderRadius: 10, border: "1px solid #ccc" }}
-                >
-                  <option value={30}>30</option>
-                  <option value={20}>20</option>
-                  <option value={15}>15</option>
-                  <option value={10}>10</option>
-                </select>
-              </label>
+          <div className="row two" style={{ marginTop: 10 }}>
+            <div>
+              <div className="label">Down type</div>
+              <select className="select" value={downType} onChange={(e) => setDownType(e.target.value)}>
+                <option value="%">%</option>
+                <option value="$">$</option>
+              </select>
             </div>
-
-            <label style={{ display: "block", marginBottom: 10 }}>
-              Annual property taxes (suggested: 1% of price)
+            <div>
+              <div className="label">Down payment ({downType})</div>
               <input
+                className="input"
+                type="number"
+                min="0"
+                value={downValue}
+                onChange={(e) => setDownValue(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div className="row two" style={{ marginTop: 10 }}>
+            <div>
+              <div className="label">Interest rate (APR %)</div>
+              <input
+                className="input"
+                type="number"
+                min="0"
+                step="0.01"
+                value={rate}
+                onChange={(e) => setRate(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <div className="label">Term (years)</div>
+              <select className="select" value={termYears} onChange={(e) => setTermYears(Number(e.target.value))}>
+                <option value={30}>30</option>
+                <option value={20}>20</option>
+                <option value={15}>15</option>
+                <option value={10}>10</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="row two" style={{ marginTop: 10 }}>
+            <div>
+              <div className="label">Annual property taxes</div>
+              <input
+                className="input"
                 type="number"
                 min="0"
                 value={taxesAnnual}
@@ -339,16 +323,14 @@ export default function App() {
                   setTaxesTouched(true);
                   setTaxesAnnual(Number(e.target.value));
                 }}
-                style={{ width: "100%", padding: 10, marginTop: 6, borderRadius: 10, border: "1px solid #ccc" }}
               />
-              <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
-                Suggested: {formatMoney(suggestedTaxes)} / yr
-              </div>
-            </label>
+              <div className="hint">Suggested: {formatMoney(suggestedTaxes)} / yr (1% rule)</div>
+            </div>
 
-            <label style={{ display: "block", marginBottom: 10 }}>
-              Annual homeowners insurance (suggested: 0.8% of price)
+            <div>
+              <div className="label">Annual homeowners insurance</div>
               <input
+                className="input"
                 type="number"
                 min="0"
                 value={hoiAnnual}
@@ -356,170 +338,106 @@ export default function App() {
                   setHoiTouched(true);
                   setHoiAnnual(Number(e.target.value));
                 }}
-                style={{ width: "100%", padding: 10, marginTop: 6, borderRadius: 10, border: "1px solid #ccc" }}
               />
-              <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
-                Suggested: {formatMoney(suggestedHoi)} / yr
-              </div>
-            </label>
+              <div className="hint">Suggested: {formatMoney(suggestedHoi)} / yr (0.8% rule)</div>
+            </div>
+          </div>
 
-            <label style={{ display: "block", marginBottom: 10 }}>
-              HOA (monthly, optional)
+          <div className="row" style={{ marginTop: 10 }}>
+            <div>
+              <div className="label">HOA (monthly, optional)</div>
               <input
+                className="input"
                 type="number"
                 min="0"
                 value={hoaMonthly}
                 onChange={(e) => setHoaMonthly(Number(e.target.value))}
-                style={{ width: "100%", padding: 10, marginTop: 6, borderRadius: 10, border: "1px solid #ccc" }}
               />
+            </div>
+          </div>
+
+          <div className="callout warn">
+            <b>PMI note:</b> PMI uses a <b>0.50%</b> placeholder when under 20% down. Actual PMI can vary widely.
+          </div>
+        </section>
+
+        {/* RIGHT: RESULTS + LEAD CAPTURE */}
+        <section className="card sticky">
+          <div className="cardTitle">
+            <h2>Results</h2>
+            {copyStatus ? <div className="small">{copyStatus}</div> : <div className="small">Updated live</div>}
+          </div>
+
+          <div className="kpiGrid">
+            <KPI label="Total monthly (PITI + HOA)" value={`${formatMoney(calc.total)} / mo`} />
+            <KPI label="PITI" value={`${formatMoney(calc.piti)} / mo`} />
+            <KPI label="Loan amount" value={formatMoney(calc.loan)} />
+            <KPI label="Down payment" value={`${formatMoney(calc.downDollar)} (${round2(calc.downPct)}%)`} />
+          </div>
+
+          <div className="callout info">
+            <div><b>Payment breakdown</b></div>
+            <div className="small" style={{ marginTop: 8, lineHeight: 1.45 }}>
+              P&amp;I: {formatMoney(calc.pi)} / mo<br/>
+              Taxes: {formatMoney(calc.taxesM)} / mo<br/>
+              HOI: {formatMoney(calc.hoiM)} / mo<br/>
+              PMI (est.): {formatMoney(calc.pmiM)} / mo<br/>
+              HOA: {formatMoney(calc.hoaM)} / mo
+            </div>
+          </div>
+
+          <div className="callout warn">
+            <div><b>PMI avoidance helper</b></div>
+            <div className="small" style={{ marginTop: 8, lineHeight: 1.45 }}>
+              20% down target: {formatMoney(calc.down20Dollar)}<br/>
+              Extra to reach 20%: {calc.extraTo20 > 0 ? formatMoney(calc.extraTo20) : "Already at/above 20%"}
+            </div>
+          </div>
+
+          <div className="callout good">
+            <div><b>Income needed (housing-only @ 42% max)</b></div>
+            <div style={{ marginTop: 8, fontSize: 20, fontWeight: 900 }}>
+              {formatMoney(calc.requiredIncomeM)} / month
+            </div>
+            <div className="small">(~{formatMoney(calc.requiredIncomeA)} / year)</div>
+            <div className="small" style={{ marginTop: 8 }}>
+              Excludes other monthly debts (auto, student loans, credit cards, etc.).
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <div className="label">Save my estimate & follow up</div>
+
+            <div className="row two">
+              <input className="input" placeholder="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              <input className="input" placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+
+            <div className="row" style={{ marginTop: 10 }}>
+              <input className="input" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+
+            <label className="small" style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
+              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+              It’s OK to contact me about this estimate.
             </label>
 
             <button
-              onClick={resetSuggested}
-              style={{
-                padding: "10px 12px",
-                borderRadius: 12,
-                border: "1px solid #333",
-                background: "white",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
+              className="btn primary"
+              style={{ width: "100%", marginTop: 12 }}
+              onClick={submitLead}
+              disabled={status.type === "loading"}
             >
-              Reset taxes & insurance to suggested
+              {status.type === "loading" ? "Submitting..." : "Submit"}
             </button>
-          </section>
 
-          {/* Results */}
-          <section style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-              <h2 style={{ marginTop: 0, fontSize: 18 }}>Results</h2>
-              <button
-                onClick={copySummary}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid #111",
-                  background: "#111",
-                  color: "white",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
-                Copy summary
-              </button>
+            {status.type === "success" && <div className="success" style={{ marginTop: 10 }}>{status.msg}</div>}
+            {status.type === "error" && <div className="error" style={{ marginTop: 10 }}>{status.msg}</div>}
+
+            <div className="small" style={{ marginTop: 10 }}>
+              <b>DISCLAIMER:</b> Illustrative purposes only. Not a Loan Estimate, not a rate lock, not a loan approval.
+              Get an official Loan Estimate and talk to a mortgage professional before choosing a loan.
             </div>
-            {copyStatus && <div style={{ marginTop: 6, color: "#166534", fontWeight: 700 }}>{copyStatus}</div>}
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
-              <Stat label="Down payment" value={`${formatMoney(calc.downDollar)} (${round2(calc.downPct)}%)`} />
-              <Stat label="Loan amount" value={formatMoney(calc.loan)} />
-              <Stat label="P&I" value={`${formatMoney(calc.pi)} / mo`} />
-              <Stat label="Taxes" value={`${formatMoney(calc.taxesM)} / mo`} />
-              <Stat label="HOI" value={`${formatMoney(calc.hoiM)} / mo`} />
-              <Stat label="PMI (est.)" value={`${formatMoney(calc.pmiM)} / mo`} />
-              <Stat label="PITI" value={`${formatMoney(calc.piti)} / mo`} />
-              <Stat label="Total (PITI + HOA)" value={`${formatMoney(calc.total)} / mo`} />
-            </div>
-
-            {/* PMI helper */}
-            <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: "#fff7ed", border: "1px solid #fed7aa" }}>
-              <div style={{ fontWeight: 900, marginBottom: 6 }}>PMI callout</div>
-              <div style={{ color: "#7c2d12", lineHeight: 1.35 }}>
-                PMI is shown using a <b>0.50%</b> placeholder (only if under 20% down). Actual PMI can vary a lot.
-              </div>
-              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <Stat label="Down payment to reach 20%" value={formatMoney(calc.down20Dollar)} />
-                <Stat
-                  label="Extra down needed to reach 20%"
-                  value={calc.extraTo20 > 0 ? formatMoney(calc.extraTo20) : "Already at/above 20%"}
-                />
-              </div>
-            </div>
-
-            {/* DTI backwards */}
-            <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: "#eef2ff", border: "1px solid #c7d2fe" }}>
-              <div style={{ fontWeight: 900, marginBottom: 6 }}>Income needed (housing-only @ 42% max)</div>
-              <div style={{ color: "#1e3a8a" }}>
-                To keep <b>housing (PITI)</b> at or below <b>42%</b> of gross monthly income:
-              </div>
-              <div style={{ marginTop: 8, fontSize: 18, fontWeight: 900 }}>
-                {formatMoney(calc.requiredIncomeM)} / month gross income needed
-              </div>
-              <div style={{ marginTop: 4, color: "#1e3a8a" }}>
-                (~{formatMoney(calc.requiredIncomeA)} / year)
-              </div>
-              <div style={{ marginTop: 8, color: "#1e3a8a", fontSize: 13 }}>
-                This excludes other monthly debts. If you have other debts, the required income would be higher.
-              </div>
-            </div>
-          </section>
-        </div>
-
-        {/* Lead capture */}
-        <section style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16, marginTop: 16 }}>
-          <h2 style={{ marginTop: 0, fontSize: 18 }}>Save my estimate & follow up</h2>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-            <label style={{ display: "block" }}>
-              First name
-              <input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                style={{ width: "100%", padding: 10, marginTop: 6, borderRadius: 10, border: "1px solid #ccc" }}
-              />
-            </label>
-
-            <label style={{ display: "block" }}>
-              Phone
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                style={{ width: "100%", padding: 10, marginTop: 6, borderRadius: 10, border: "1px solid #ccc" }}
-              />
-            </label>
-
-            <label style={{ display: "block" }}>
-              Email
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{ width: "100%", padding: 10, marginTop: 6, borderRadius: 10, border: "1px solid #ccc" }}
-              />
-            </label>
-          </div>
-
-          <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-            <span style={{ color: "#444" }}>It’s OK to contact me about this estimate.</span>
-          </label>
-
-          <button
-            onClick={submitLead}
-            disabled={status.type === "loading"}
-            style={{
-              marginTop: 12,
-              padding: "12px 14px",
-              borderRadius: 12,
-              border: "1px solid #111",
-              background: "#111",
-              color: "white",
-              fontWeight: 900,
-              cursor: "pointer",
-            }}
-          >
-            {status.type === "loading" ? "Submitting..." : "Submit"}
-          </button>
-
-          {status.type !== "idle" && (
-            <div style={{ marginTop: 10, color: status.type === "error" ? "#b91c1c" : "#166534", fontWeight: 800 }}>
-              {status.msg}
-            </div>
-          )}
-
-          {/* Second disclaimer near submit */}
-          <div style={{ marginTop: 12, fontSize: 12, color: "#222", fontWeight: 800 }}>
-            DISCLAIMER: Illustrative purposes only. Not a Loan Estimate, not a rate lock, not a loan approval. Get an
-            official Loan Estimate and talk to a mortgage professional before choosing a loan.
           </div>
         </section>
       </div>
@@ -527,11 +445,11 @@ export default function App() {
   );
 }
 
-function Stat({ label, value }) {
+function KPI({ label, value }) {
   return (
-    <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
-      <div style={{ fontSize: 12, color: "#666" }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 900, marginTop: 4 }}>{value}</div>
+    <div className="kpi">
+      <div className="k">{label}</div>
+      <div className="v">{value}</div>
     </div>
   );
 }
